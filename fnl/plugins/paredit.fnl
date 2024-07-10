@@ -6,7 +6,7 @@
   :ft [:clojure :fennel]
   :config (fn []
             (let [paredit (require :nvim-paredit)]
-              (paredit.setup)))}
+                (paredit.setup {:keys {"<localleader>k" [paredit.api.delete_form "Delete a form"]}})))}
 
  {1 :julienvincent/nvim-paredit-fennel
   :dependencies [:julienvincent/nvim-paredit]

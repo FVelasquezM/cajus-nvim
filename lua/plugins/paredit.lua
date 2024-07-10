@@ -4,7 +4,7 @@ local autoload = _local_1_["autoload"]
 local nvim = autoload("nvim")
 local function _2_()
   local paredit = require("nvim-paredit")
-  return paredit.setup()
+  return paredit.setup({keys = {["<localleader>k"] = {paredit.api.delete_form, "Delete a form"}}})
 end
 local function _3_()
   local paredit_fnl = require("nvim-paredit-fennel")

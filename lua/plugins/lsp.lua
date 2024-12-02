@@ -44,6 +44,6 @@ local function _2_()
     return nvim.buf_set_keymap(bufnr, "n", "<leader>li", ":lua require('telescope.builtin').lsp_implementations()<cr>", {noremap = true})
   end
   on_attach = _4_
-  return lsp.clojure_lsp.setup({on_attach = on_attach, handlers = handlers, before_init = before_init, capabilities = capabilities})
+  return lsp.ts_ls.setup({})
 end
 return {{"neovim/nvim-lspconfig", config = _2_}}

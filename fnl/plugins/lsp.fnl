@@ -60,4 +60,10 @@
               ;; https://github.com/neovim/nvim-lspconfig/blob/master/doc/server_configurations.md
 
               ;; Typescript
-              (lsp.ts_ls.setup {})))}]
+              (do 
+                (lsp.ts_ls.setup {:on_attach on_attach
+                                  :handlers handlers
+                                  :before_init before_init
+                                  :capabilities capabilities})
+                (lsp.eslint.setup {:on_attach (fn [client bufnr]
+                                               (vim.api.nvim_create_autocmd "BufWritePre" {:buffer bufnr :command "EslintFixAll"}))}))))}]

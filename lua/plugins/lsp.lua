@@ -44,6 +44,10 @@ local function _2_()
     return nvim.buf_set_keymap(bufnr, "n", "<leader>li", ":lua require('telescope.builtin').lsp_implementations()<cr>", {noremap = true})
   end
   on_attach = _4_
-  return lsp.ts_ls.setup({})
+  lsp.ts_ls.setup({on_attach = on_attach, handlers = handlers, before_init = before_init, capabilities = capabilities})
+  local function _5_(client, bufnr)
+    return vim.api.nvim_create_autocmd("BufWritePre", {buffer = bufnr, command = "EslintFixAll"})
+  end
+  return lsp.eslint.setup({on_attach = _5_})
 end
 return {{"neovim/nvim-lspconfig", config = _2_}}

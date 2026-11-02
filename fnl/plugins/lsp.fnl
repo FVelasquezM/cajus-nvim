@@ -1,66 +1,47 @@
-(local {: autoload} (require :nfnl.module))
-(local nvim (autoload :nvim))
+;diagnostics display, including the symbols shown in the sign column
+(vim.diagnostic.config
+  {:severity_sort true
+   :update_in_insert true
+   :underline true
+   :virtual_text false
+   :float {:border "single"}
+   :signs {:text {vim.diagnostic.severity.ERROR ""
+                  vim.diagnostic.severity.WARN ""
+                  vim.diagnostic.severity.INFO ""
+                  vim.diagnostic.severity.HINT ""}}})
 
-;symbols to show for lsp diagnostics
-(fn define-signs
-  [prefix]
-  (let [error (.. prefix "SignError")
-        warn  (.. prefix "SignWarn")
-        info  (.. prefix "SignInfo")
-        hint  (.. prefix "SignHint")]
-    (vim.fn.sign_define error {:text "" :texthl error})
-    (vim.fn.sign_define warn  {:text "" :texthl warn})
-    (vim.fn.sign_define info  {:text "" :texthl info})
-    (vim.fn.sign_define hint  {:text "" :texthl hint})))
-
-(define-signs "Diagnostic")
+(fn on-attach [ev]
+  (let [map (fn [mode lhs rhs desc]
+              (vim.keymap.set mode lhs rhs {:buffer ev.buf : desc}))
+        telescope #(require :telescope.builtin)]
+    (map :n :gd vim.lsp.buf.definition "Go to definition")
+    (map :n :K vim.lsp.buf.hover "Hover documentation")
+    (map :n :<leader>ld vim.lsp.buf.declaration "Go to declaration")
+    (map :n :<leader>lt vim.lsp.buf.type_definition "Go to type definition")
+    (map :n :<leader>lh vim.lsp.buf.signature_help "Signature help")
+    (map :n :<leader>ln vim.lsp.buf.rename "Rename")
+    (map :n :<leader>le vim.diagnostic.open_float "Line diagnostics")
+    (map :n :<leader>lq vim.diagnostic.setloclist "Diagnostics to loclist")
+    (map :n :<leader>lf vim.lsp.buf.format "Format buffer")
+    (map :n :<leader>lj #(vim.diagnostic.jump {:count 1 :float true}) "Next diagnostic")
+    (map :n :<leader>lk #(vim.diagnostic.jump {:count -1 :float true}) "Previous diagnostic")
+    ;code_action handles visual ranges itself
+    (map [:n :x] :<leader>la vim.lsp.buf.code_action "Code action")
+    ;telescope
+    (map :n :<leader>lw #((. (telescope) :diagnostics)) "Workspace diagnostics")
+    (map :n :<leader>lr #((. (telescope) :lsp_references)) "References")
+    (map :n :<leader>li #((. (telescope) :lsp_implementations)) "Implementations")))
 
 [{1 :neovim/nvim-lspconfig
+  :dependencies [:hrsh7th/cmp-nvim-lsp]
   :config (fn []
-            (let [lsp (require :lspconfig)
-                  cmplsp (require :cmp_nvim_lsp)
-                  handlers {"textDocument/publishDiagnostics"
-                            (vim.lsp.with
-                              vim.lsp.diagnostic.on_publish_diagnostics
-                              {:severity_sort true
-                               :update_in_insert true
-                               :underline true
-                               :virtual_text false})
-                            "textDocument/hover"
-                            (vim.lsp.with
-                              vim.lsp.handlers.hover
-                              {:border "single"})
-                            "textDocument/signatureHelp"
-                            (vim.lsp.with
-                              vim.lsp.handlers.signature_help
-                              {:border "single"})}
-                  capabilities (cmplsp.default_capabilities)
-                  before_init (fn [params]
-                                (set params.workDoneToken :1))
-                  on_attach (fn [client bufnr]
-                              (do
-                                (nvim.buf_set_keymap bufnr :n :gd "<Cmd>lua vim.lsp.buf.definition()<CR>" {:noremap true})
-                                (nvim.buf_set_keymap bufnr :n :K "<Cmd>lua vim.lsp.buf.hover()<CR>" {:noremap true})
-                                (nvim.buf_set_keymap bufnr :n :<leader>ld "<Cmd>lua vim.lsp.buf.declaration()<CR>" {:noremap true})
-                                (nvim.buf_set_keymap bufnr :n :<leader>lt "<cmd>lua vim.lsp.buf.type_definition()<CR>" {:noremap true})
-                                (nvim.buf_set_keymap bufnr :n :<leader>lh "<cmd>lua vim.lsp.buf.signature_help()<CR>" {:noremap true})
-                                (nvim.buf_set_keymap bufnr :n :<leader>ln "<cmd>lua vim.lsp.buf.rename()<CR>" {:noremap true})
-                                (nvim.buf_set_keymap bufnr :n :<leader>le "<cmd>lua vim.diagnostic.open_float()<CR>" {:noremap true})
-                                (nvim.buf_set_keymap bufnr :n :<leader>lq "<cmd>lua vim.diagnostic.setloclist()<CR>" {:noremap true})
-                                (nvim.buf_set_keymap bufnr :n :<leader>lf "<cmd>lua vim.lsp.buf.format()<CR>" {:noremap true})
-                                (nvim.buf_set_keymap bufnr :n :<leader>lj "<cmd>lua vim.diagnostic.goto_next()<CR>" {:noremap true})
-                                (nvim.buf_set_keymap bufnr :n :<leader>lk "<cmd>lua vim.diagnostic.goto_prev()<CR>" {:noremap true})
-                                (nvim.buf_set_keymap bufnr :n :<leader>la "<cmd>lua vim.lsp.buf.code_action()<CR>" {:noremap true})
-                                (nvim.buf_set_keymap bufnr :v :<leader>la "<cmd>lua vim.lsp.buf.range_code_action()<CR> " {:noremap true})
-                                ;telescope
-                                (nvim.buf_set_keymap bufnr :n :<leader>lw ":lua require('telescope.builtin').diagnostics()<cr>" {:noremap true})
-                                (nvim.buf_set_keymap bufnr :n :<leader>lr ":lua require('telescope.builtin').lsp_references()<cr>" {:noremap true})
-                                (nvim.buf_set_keymap bufnr :n :<leader>li ":lua require('telescope.builtin').lsp_implementations()<cr>" {:noremap true})))]
-              ;; To add support to more language servers check:
-              ;; https://github.com/neovim/nvim-lspconfig/blob/master/doc/server_configurations.md
-
-              ;; Clojure
-              (lsp.clojure_lsp.setup {:on_attach on_attach
-                                      :handlers handlers
-                                      :before_init before_init
-                                      :capabilities capabilities})))}]
+            (let [cmplsp (require :cmp_nvim_lsp)]
+              ;; defaults shared by every language server
+              (vim.lsp.config "*" {:capabilities (cmplsp.default_capabilities)})
+              (vim.api.nvim_create_autocmd :LspAttach
+                                           {:group (vim.api.nvim_create_augroup :cajus-lsp {})
+                                            :callback on-attach})
+              ;; To add support for more language servers, add their names here.
+              ;; Available configs: https://github.com/neovim/nvim-lspconfig/blob/master/doc/configs.md
+              ;; Per-server settings go in (vim.lsp.config :<name> {...}) before this line.
+              (vim.lsp.enable [:clojure_lsp])))}]

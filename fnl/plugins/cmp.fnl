@@ -2,14 +2,12 @@
   {:buffer "buff"
    :conjure "conj"
    :nvim_lsp "lsp"
-   :vsnip "vsnp"
    :luasnip "lsnp"})
 
 (local cmp-srcs
   [{:name :nvim_lsp}
    {:name :conjure}
    {:name :buffer}
-   {:name :vsnip}
    {:name :luasnip}])
 
 (fn has-words-before []
@@ -20,7 +18,6 @@
 [{1 :hrsh7th/nvim-cmp
   :dependencies [:hrsh7th/cmp-buffer
                  :hrsh7th/cmp-nvim-lsp
-                 :hrsh7th/cmp-vsnip
                  :PaterJason/cmp-conjure
                  :L3MON4D3/LuaSnip
                  :saadparwaiz1/cmp_luasnip]
@@ -35,7 +32,7 @@
                                     :<C-b> (cmp.mapping.scroll_docs (- 4))
                                     :<C-f> (cmp.mapping.scroll_docs 4)
                                     :<C-Space> (cmp.mapping.complete)
-                                    :<C-e> (cmp.mapping.close)
+                                    :<C-e> (cmp.mapping.abort)
                                     :<CR> (cmp.mapping.confirm {:behavior cmp.ConfirmBehavior.Insert
                                                                 :select true})
                                     :<Tab> (cmp.mapping (fn [fallback]

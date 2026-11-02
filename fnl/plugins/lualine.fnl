@@ -1,45 +1,43 @@
-(local {: autoload} (require :nfnl.module))
-(local lsp (autoload :config.lsp))
+;latest language server progress message (e.g. clojure-lsp indexing), empty when idle
+(var lsp-progress-message "")
 
-(fn lsp_connection []
-  (let [message (lsp.get-progress-message)]
-    (if
-      ; if has progress handler and is loading
-      (or (= message.status "begin")
-          (= message.status "report"))
-      (.. message.msg " : " message.percent "%% ")
+(fn lsp-progress []
+  lsp-progress-message)
 
-      ; if has progress handler and finished loading
-      (= message.status "end")
-      ""
-
-      ; if hasn't progress handler, but has connected lsp client
-      (and (= message.status "")
-           (not (vim.tbl_isempty (vim.lsp.buf_get_clients 0))))
-      ""
-
-      ; else
-      "")))
+(fn track-lsp-progress [ev]
+  (let [value (or (?. ev :data :params :value) {})]
+    (set lsp-progress-message
+         (if (= value.kind :end)
+           ""
+           (.. (or value.title "")
+               (if value.message (.. " : " value.message) "")
+               (if value.percentage (.. " : " value.percentage "%%") "")))))
+  (vim.cmd.redrawstatus)
+  ;an autocmd callback that returns a truthy value is deleted, so return nil
+  nil)
 
 [{1 :nvim-lualine/lualine.nvim
   :config (fn []
+            (vim.api.nvim_create_autocmd :LspProgress
+                                         {:group (vim.api.nvim_create_augroup :cajus-lualine {})
+                                          :callback track-lsp-progress})
             (let [lualine (require :lualine)]
               (lualine.setup
-                {:options {:theme :dracula
+                {:options {:theme :auto
                            :icons_enabled true
                            :section_separators ["" ""]
-                           :component_separators ["" ""]}
+                           :component_separators ["" ""]}
                  :sections {:lualine_a []
                             :lualine_b [[:mode {:upper true}]]
-                            :lualine_c [["FugitiveHead"]
+                            :lualine_c [:branch
                                         {1 :filename
                                          :file_status true
                                          :path 1
                                          :shorting_target 40}]
                             :lualine_x [{1 :diagnostics
                                          :sections [:error :warn :info :hint]
-                                         :sources [:nvim_lsp]}
-                                        [lsp_connection]
+                                         :sources [:nvim_diagnostic]}
+                                        lsp-progress
                                         :location
                                         :filetype]
                             :lualine_y [:encoding]

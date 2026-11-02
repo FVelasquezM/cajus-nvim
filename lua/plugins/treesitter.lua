@@ -1,6 +1,21 @@
--- [nfnl] Compiled from fnl/plugins/treesitter.fnl by https://github.com/Olical/nfnl, do not edit.
-local function _1_()
-  local treesitter = require("nvim-treesitter.configs")
-  return treesitter.setup({highlight = {enable = true}, indent = {enable = true}, ensure_installed = {"bash", "clojure", "commonlisp", "dockerfile", "fennel", "html", "java", "javascript", "json", "lua", "markdown", "yaml"}})
+-- [nfnl] fnl/plugins/treesitter.fnl
+local parsers = {"bash", "clojure", "commonlisp", "dockerfile", "fennel", "html", "java", "javascript", "json", "lua", "markdown", "markdown_inline", "yaml"}
+local function start_treesitter(ev)
+  local lang = vim.treesitter.language.get_lang(vim.bo[ev.buf].filetype)
+  if (lang and pcall(vim.treesitter.start, ev.buf, lang)) then
+    if vim.treesitter.query.get(lang, "indents") then
+      vim.bo[ev.buf]["indentexpr"] = "v:lua.require'nvim-treesitter'.indentexpr()"
+      return nil
+    else
+      return nil
+    end
+  else
+    return nil
+  end
 end
-return {{"nvim-treesitter/nvim-treesitter", build = ":TSUpdate", config = _1_}}
+local function _3_()
+  local treesitter = require("nvim-treesitter")
+  treesitter.install(parsers)
+  return vim.api.nvim_create_autocmd("FileType", {group = vim.api.nvim_create_augroup("cajus-treesitter", {}), callback = start_treesitter})
+end
+return {{"nvim-treesitter/nvim-treesitter", branch = "main", build = ":TSUpdate", config = _3_, lazy = false}}
